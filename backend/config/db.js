@@ -9,7 +9,11 @@ const sequelize = new Sequelize(
         host: process.env.DB_HOST,
         port: process.env.DB_PORT,
         dialect: 'mysql',
-        logging: false
+        logging: false,
+        // Optional TLS for managed databases (e.g. Aiven MySQL). Set DB_SSL=true to enable.
+        ...(process.env.DB_SSL === 'true'
+            ? { dialectOptions: { ssl: { rejectUnauthorized: false } } }
+            : {})
     }
 );
 
