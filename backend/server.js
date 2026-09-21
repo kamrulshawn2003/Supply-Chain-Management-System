@@ -14,6 +14,9 @@ const orderRoutes = require('./routes/orderRoutes');
 const userRoutes = require('./routes/userRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const purchaseOrderRoutes = require('./routes/purchaseOrderRoutes');
+const returnRoutes = require('./routes/returnRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const errorMiddleware = require('./middleware/errorMiddleware');
 
 // Check required environment variables
@@ -70,6 +73,9 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
+app.use('/api/returns', returnRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Global 404 handler
 app.use((req, res) => {

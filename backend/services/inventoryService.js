@@ -8,6 +8,7 @@ const {
     Warehouse
 } = require('../models');
 const auditService = require('./auditService');
+const notificationService = require('./notificationService');
 
 const normalizeType = (type) => type === 'ADJUST' ? 'ADJUSTMENT' : type;
 
@@ -147,9 +148,11 @@ exports.updateStock = async ({ payload, user }) => {
         }
         if (type === 'ADJUSTMENT') afterQuantity = quantity;
 
+        const threshold = payload.lowStockThreshold ?? inventory.lowStockThreshold;
+
         await inventory.update({
             quantity: afterQuantity,
-            lowStockThreshold: payload.lowStockThreshold ?? inventory.lowStockThreshold
+            lowStockThreshold: threshold
         }, { transaction });
 
         await createMovement({
@@ -163,6 +166,27 @@ exports.updateStock = async ({ payload, user }) => {
             performedBy: user.id,
             transaction
         });
+
+        // Low-stock alert: notify admins and the relevant warehouse managers
+        if (afterQuantity < threshold) {
+            await notificationService.notifyRole({
+                role: 'admin',
+                type: 'LOW_STOCK',
+                title: 'Low stock alert',
+                message: `Stock for product #${productId} in warehouse #${warehouseId} is below threshold (${afterQuantity} < ${threshold}).`,
+                link: '/inventory/low-stock',
+                transaction
+            });
+            await notificationService.notifyRole({
+                role: 'warehouse_manager',
+                type: 'LOW_STOCK',
+                title: 'Low stock alert',
+                message: `Stock for product #${productId} in your warehouse is below threshold (${afterQuantity} < ${threshold}).`,
+                link: '/inventory/low-stock',
+                transaction,
+                warehouseId
+            });
+        }
 
         await auditService.log({
             action: 'INVENTORY_UPDATE',
@@ -226,6 +250,56 @@ exports.restockCancelledOrder = async ({ productId, warehouseId, quantity, order
         performedBy: userId,
         transaction
     });
+};
+
+// Generic stock-in used by purchase order receiving and return approval
+exports.receiveStock = async ({
+    productId,
+    warehouseId,
+    quantity,
+    reason,
+    referenceType,
+    referenceId,
+    userId,
+    transaction
+}) => {
+    let inventory = await getInventoryWithLock({ productId, warehouseId, transaction });
+
+    if (!inventory) {
+        inventory = await Inventory.create({
+            productId,
+            warehouseId,
+            quantity: 0
+        }, { transaction });
+    }
+
+    const beforeQuantity = inventory.quantity;
+    const afterQuantity = beforeQuantity + quantity;
+
+    await inventory.update({ quantity: afterQuantity }, { transaction });
+    await createMovement({
+        type: 'IN',
+        productId,
+        warehouseId,
+        quantity,
+        beforeQuantity,
+        afterQuantity,
+        reason,
+        referenceType,
+        referenceId,
+        performedBy: userId,
+        transaction
+    });
+    await auditService.log({
+        action: 'INVENTORY_RECEIVED',
+        entityType: 'Inventory',
+        entityId: inventory.id,
+        performedBy: userId,
+        details: { productId, warehouseId, quantity, beforeQuantity, afterQuantity, referenceType, referenceId },
+        transaction
+    });
+
+    return inventory;
 };
 
 exports.transferStock = async ({ payload, user }) => {

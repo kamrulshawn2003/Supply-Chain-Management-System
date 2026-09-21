@@ -38,6 +38,22 @@ function OrderDetails() {
     }
   };
 
+  const handleCancel = async () => {
+    if (!window.confirm('Cancel this order? Stock will be restored.')) return;
+    try {
+      await ordersAPI.cancelOrder(id);
+      toast.success('Order cancelled');
+      fetchOrder();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to cancel order');
+    }
+  };
+
+  // Customers may cancel their own pending/approved orders; staff may cancel any
+  const canCancel =
+    ['admin', 'warehouse_manager', 'customer'].includes(user?.role) &&
+    ['pending', 'approved'].includes(order?.status);
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -136,6 +152,27 @@ function OrderDetails() {
             >
                 Mark as Delivered
               </button>
+            )}
+          </div>
+        )}
+
+        {(canCancel || (user?.role === 'customer' && order.status === 'delivered')) && (
+          <div className="flex space-x-3 pt-4 border-t">
+            {canCancel && (
+              <button
+                onClick={handleCancel}
+                className="btn-secondary border-red-300 text-red-600 hover:bg-red-50"
+              >
+                Cancel Order
+              </button>
+            )}
+            {user?.role === 'customer' && order.status === 'delivered' && (
+              <Link
+                to={`/returns/new?orderId=${order.id}`}
+                className="btn-primary bg-purple-600 hover:bg-purple-700"
+              >
+                Request Return
+              </Link>
             )}
           </div>
         )}

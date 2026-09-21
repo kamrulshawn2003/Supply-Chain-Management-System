@@ -61,6 +61,16 @@ router.patch(
     orderController.updateOrderStatus
 );
 
+// Customer-facing cancellation (restores stock, pending/approved only)
+router.post(
+    '/:id/cancel',
+    auth,
+    role('admin', 'warehouse_manager', 'customer'),
+    validators.idParam,
+    validateRequest,
+    orderController.cancelOrder
+);
+
 router.patch(
     '/:id/assign-driver',
     auth,

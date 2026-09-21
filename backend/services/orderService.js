@@ -10,6 +10,7 @@ const {
 } = require('../models');
 const inventoryService = require('./inventoryService');
 const auditService = require('./auditService');
+const notificationService = require('./notificationService');
 
 const transitions = {
     pending: ['approved', 'cancelled'],
@@ -74,6 +75,16 @@ exports.createOrder = async ({ user, payload }) => {
             entityId: order.id,
             performedBy: user.id,
             details: { productId, warehouseId, quantity },
+            transaction
+        });
+
+        // Notify admins about the new pending order
+        await notificationService.notifyRole({
+            role: 'admin',
+            type: 'ORDER',
+            title: 'New order received',
+            message: `New order #${order.id} ($${Number(order.totalPrice).toFixed(2)}) is pending approval.`,
+            link: `/orders/${order.id}`,
             transaction
         });
 
@@ -189,6 +200,16 @@ exports.updateOrderStatus = async ({ id, status, user }) => {
             transaction
         });
 
+        // Notify the customer about the status change
+        await notificationService.notify({
+            userId: order.UserId,
+            type: 'ORDER',
+            title: `Order #${order.id} ${status}`,
+            message: `Your order #${order.id} is now ${status}.`,
+            link: `/orders/${order.id}`,
+            transaction
+        });
+
         return order.reload({ include: orderInclude, transaction });
     });
 };
@@ -226,6 +247,15 @@ exports.assignDriver = async ({ id, driverId, user }) => {
             transaction
         });
 
+        await notificationService.notify({
+            userId: driver.id,
+            type: 'ORDER',
+            title: 'Delivery assigned',
+            message: `Order #${order.id} has been assigned to you for delivery.`,
+            link: `/orders/${order.id}`,
+            transaction
+        });
+
         return order.reload({ include: orderInclude, transaction });
     });
 };
@@ -240,6 +270,62 @@ exports.driverUpdateStatus = async ({ id, status, user }) => {
     if (order.DriverId !== user.id) throw new AppError('Not your assigned order', 403);
 
     return exports.updateOrderStatus({ id, status, user: { ...user, role: 'driver' } });
+};
+
+exports.cancelOrder = async ({ id, user }) => {
+    return sequelize.transaction(async (transaction) => {
+        const order = await Order.findByPk(id, {
+            include: orderInclude,
+            transaction,
+            lock: true
+        });
+        if (!order) throw new AppError('Order not found', 404);
+
+        if (user.role === 'customer' && order.UserId !== user.id) {
+            throw new AppError('You can only cancel your own orders', 403);
+        }
+        if (user.role === 'warehouse_manager' && order.WarehouseId !== user.warehouseId) {
+            throw new AppError('Access denied for orders outside your warehouse', 403);
+        }
+
+        if (!['pending', 'approved'].includes(order.status)) {
+            throw new AppError('Only pending or approved orders can be cancelled', 400);
+        }
+
+        const previousStatus = order.status;
+        order.status = 'cancelled';
+        order.cancelledAt = new Date();
+
+        await inventoryService.restockCancelledOrder({
+            productId: order.ProductId,
+            warehouseId: order.WarehouseId,
+            quantity: order.quantity,
+            orderId: order.id,
+            userId: user.id,
+            transaction
+        });
+
+        await order.save({ transaction });
+        await auditService.log({
+            action: 'ORDER_CANCELLED',
+            entityType: 'Order',
+            entityId: order.id,
+            performedBy: user.id,
+            details: { previousStatus },
+            transaction
+        });
+
+        await notificationService.notify({
+            userId: order.UserId,
+            type: 'ORDER',
+            title: `Order #${order.id} cancelled`,
+            message: `Your order #${order.id} has been cancelled.`,
+            link: `/orders/${order.id}`,
+            transaction
+        });
+
+        return order.reload({ include: orderInclude, transaction });
+    });
 };
 
 exports.deleteOrder = async ({ id, user }) => {

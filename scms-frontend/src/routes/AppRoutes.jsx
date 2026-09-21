@@ -27,6 +27,14 @@ const OrderList = lazy(() => import('../pages/orders/OrderList'));
 const OrderDetails = lazy(() => import('../pages/orders/OrderDetails'));
 const RevenueReport = lazy(() => import('../pages/reports/RevenueReport'));
 const Analytics = lazy(() => import('../pages/reports/Analytics'));
+const PurchaseOrderList = lazy(() => import('../pages/purchasing/PurchaseOrderList'));
+const PurchaseOrderCreate = lazy(() => import('../pages/purchasing/PurchaseOrderCreate'));
+const ReturnList = lazy(() => import('../pages/returns/ReturnList'));
+const ReturnRequest = lazy(() => import('../pages/returns/ReturnRequest'));
+const NotificationsPage = lazy(() => import('../pages/notifications/NotificationsPage'));
+const AdminSuppliers = lazy(() => import('../pages/admin/AdminSuppliers'));
+const AdminUsers = lazy(() => import('../pages/admin/AdminUsers'));
+const AdminWarehouses = lazy(() => import('../pages/admin/AdminWarehouses'));
 
 function AppRoutes() {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -81,6 +89,71 @@ function AppRoutes() {
               element={
                 <RoleGuard roles={['admin', 'warehouse_manager']}>
                   <Analytics />
+                </RoleGuard>
+              } 
+            />
+
+            {/* Purchasing */}
+            <Route 
+              path="/purchase-orders" 
+              element={
+                <RoleGuard roles={['admin', 'supplier']}>
+                  <PurchaseOrderList />
+                </RoleGuard>
+              } 
+            />
+            <Route 
+              path="/purchase-orders/create" 
+              element={
+                <RoleGuard roles={['admin']}>
+                  <PurchaseOrderCreate />
+                </RoleGuard>
+              } 
+            />
+
+            {/* Returns */}
+            <Route 
+              path="/returns" 
+              element={
+                <RoleGuard roles={['admin', 'warehouse_manager', 'customer']}>
+                  <ReturnList />
+                </RoleGuard>
+              } 
+            />
+            <Route 
+              path="/returns/new" 
+              element={
+                <RoleGuard roles={['customer']}>
+                  <ReturnRequest />
+                </RoleGuard>
+              } 
+            />
+
+            {/* Notifications (all authenticated roles) */}
+            <Route path="/notifications" element={<NotificationsPage />} />
+
+            {/* Admin management */}
+            <Route 
+              path="/admin/suppliers" 
+              element={
+                <RoleGuard roles={['admin']}>
+                  <AdminSuppliers />
+                </RoleGuard>
+              } 
+            />
+            <Route 
+              path="/admin/users" 
+              element={
+                <RoleGuard roles={['admin']}>
+                  <AdminUsers />
+                </RoleGuard>
+              } 
+            />
+            <Route 
+              path="/admin/warehouses" 
+              element={
+                <RoleGuard roles={['admin']}>
+                  <AdminWarehouses />
                 </RoleGuard>
               } 
             />

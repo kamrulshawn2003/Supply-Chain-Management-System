@@ -97,5 +97,25 @@ module.exports = {
     ],
     inventoryQuery: [
         optionalIdQuery('warehouseId')
+    ],
+    purchaseOrder: [
+        requiredIdBody('supplierId'),
+        requiredIdBody('warehouseId'),
+        body('expectedDate').optional({ nullable: true }).isISO8601().withMessage('expectedDate must be a valid date'),
+        body('notes').optional({ nullable: true }).isString(),
+        body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
+        body('items.*.productId').isInt({ min: 1 }).withMessage('Item productId must be a positive integer'),
+        body('items.*.quantity').isInt({ min: 1 }).withMessage('Item quantity must be greater than 0'),
+        body('items.*.unitPrice').isFloat({ min: 0 }).withMessage('Item unitPrice must be non-negative')
+    ],
+    returnRequest: [
+        requiredIdBody('orderId'),
+        requiredIdBody('productId'),
+        body('quantity').isInt({ min: 1 }).withMessage('Quantity must be greater than 0'),
+        body('reason').trim().notEmpty().withMessage('Return reason is required')
+    ],
+    returnStatus: [
+        idParam(),
+        body('status').isIn(['approved', 'rejected']).withMessage('Status must be approved or rejected')
     ]
 };

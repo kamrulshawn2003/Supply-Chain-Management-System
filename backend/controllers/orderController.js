@@ -92,6 +92,19 @@ exports.driverUpdateStatus = asyncHandler(async (req, res) => {
     });
 });
 
+exports.cancelOrder = asyncHandler(async (req, res) => {
+    const order = await orderService.cancelOrder({
+        id: req.params.id,
+        user: req.user
+    });
+
+    res.json({
+        success: true,
+        message: 'Order cancelled',
+        data: order
+    });
+});
+
 exports.deleteOrder = asyncHandler(async (req, res) => {
     await orderService.deleteOrder({
         id: req.params.id,

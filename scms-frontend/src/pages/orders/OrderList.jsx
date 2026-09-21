@@ -59,6 +59,19 @@ function OrderList() {
     }
   };
 
+  const handleCancel = async (id) => {
+    if (!window.confirm('Cancel this order? Stock will be restored.')) return;
+    try {
+      await ordersAPI.cancelOrder(id);
+      toast.success('Order cancelled');
+      fetchOrders();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to cancel order');
+    }
+  };
+
+  const canCancel = ['admin', 'warehouse_manager', 'customer'].includes(user?.role);
+
   const columns = [
     {
       key: 'id',
@@ -124,6 +137,15 @@ function OrderList() {
             </button>
           )}
         </>
+      )}
+
+      {canCancel && ['pending', 'approved'].includes(row.status) && (
+        <button
+          onClick={() => handleCancel(row.id)}
+          className="text-red-600"
+        >
+          Cancel
+        </button>
       )}
     </div>
   );

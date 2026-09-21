@@ -11,6 +11,9 @@ import {
   ExclamationTriangleIcon,
   UsersIcon,
   BuildingOfficeIcon,
+  ShoppingBagIcon,
+  ArrowPathIcon,
+  GlobeAltIcon,
 } from '@heroicons/react/24/outline';
 import { NavLink } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -20,8 +23,13 @@ const navigation = [
   { name: 'Products', href: '/products', icon: CubeIcon, roles: ['admin', 'supplier'] },
   { name: 'Inventory', href: '/inventory', icon: ClipboardDocumentListIcon, roles: ['admin', 'warehouse_manager', 'supplier'] },
   { name: 'Orders', href: '/orders', icon: ShoppingCartIcon, roles: ['admin', 'warehouse_manager', 'customer', 'driver'] },
+  { name: 'Purchase Orders', href: '/purchase-orders', icon: ShoppingBagIcon, roles: ['admin', 'supplier'] },
+  { name: 'Returns', href: '/returns', icon: ArrowPathIcon, roles: ['admin', 'warehouse_manager', 'customer'] },
   { name: 'Revenue Report', href: '/reports/revenue', icon: ChartBarIcon, roles: ['admin'] },
   { name: 'Analytics', href: '/reports/analytics', icon: ChartBarIcon, roles: ['admin', 'warehouse_manager'] },
+  { name: 'Suppliers', href: '/admin/suppliers', icon: GlobeAltIcon, roles: ['admin'] },
+  { name: 'Users', href: '/admin/users', icon: UsersIcon, roles: ['admin'] },
+  { name: 'Warehouses', href: '/admin/warehouses', icon: BuildingOfficeIcon, roles: ['admin'] },
 ];
 
 function Sidebar({ open, setOpen }) {
