@@ -17,7 +17,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: DB_PORT
-        value: 3306
+        value: 28365
       - key: DB_NAME
         sync: false
       - key: DB_HOST
